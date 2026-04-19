@@ -204,3 +204,8 @@ When powered on, the boards should synchronize. If a blue message **"PicoBus con
   <br>
   <em>SpeccyP+GS</em>
 </div>
+<div align="center">
+  <img src="DOCS/easy.jpg" alt="easy" width="600">
+  <br>
+  <em>SpeccyP M1 + GSP M1</em>
+</div>
