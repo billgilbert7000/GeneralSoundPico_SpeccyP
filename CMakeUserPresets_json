@@ -1,0 +1,37 @@
+{
+    "version": 2,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 13,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "vga",
+            "displayName": "VGA Configuration",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/vga",
+            "cacheVariables": {
+                "VOUT": "VGA"
+            }
+        },
+        {
+            "name": "hdmi",
+            "displayName": "HDMI Configuration",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/hdmi",
+            "cacheVariables": {
+                "VOUT": "HDMI"
+            }
+        },
+        {
+            "name": "tft",
+            "displayName": "TFT Configuration",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/tft",
+            "cacheVariables": {
+                "VOUT": "TFT"
+            }
+        }
+    ]
+}
