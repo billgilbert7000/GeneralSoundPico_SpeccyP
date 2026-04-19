@@ -26,10 +26,10 @@
 
 - **Две платы Murmulator первой ревизии (MURM1)**
 - **Основная плата**:
-  - Прошивка: `SpeccyP_1.5.7_GS_m1p1.uf2` (RP2040) или `SpeccyP_1.5.7_GS_m1p2.uf2` (RP2350)
+  - Прошивка: `SpeccyP_x.x.x_GS_m1p1.uf2` (RP2040) или `SpeccyP_x.x.x_GS_m1p2.uf2` (RP2350)
 - **Дополнительная плата (MURM1 с I2S звуком)**:
   - Только для **RP2350**
-  - Прошивка: `GSP-PSRAM_1.5.7_m1p2.uf2` (с PSRAM, CS=19, доступно 2048 КБ)
+  - Прошивка: `GSP-PSRAM_x.x.x_m1p2.uf2` (с PSRAM, CS=19, доступно 2048 КБ)
 
 ### 🔌 Подключение плат
 
@@ -120,10 +120,10 @@ The project emulates multiple sound and peripheral devices using two Raspberry P
 
 - **Two Murmulator first revision boards (MURM1)**
 - **Main board**:
-  - Firmware: `SpeccyP_1.5.7_GS_m1p1.uf2` (RP2040) or `SpeccyP_1.5.7_GS_m1p2.uf2` (RP2350)
+  - Firmware: `SpeccyP_x.x.x_GS_m1p1.uf2` (RP2040) or `SpeccyP_x.x.x_GS_m1p2.uf2` (RP2350)
 - **Additional board (MURM1 with I2S audio)**:
   - **RP2350 only**
-  - Firmware: `GSP-PSRAM_1.5.7_m1p2.uf2` (with PSRAM, CS=19, 2048 KB available)
+  - Firmware: `GSP-PSRAM_x.x.x_m1p2.uf2` (with PSRAM, CS=19, 2048 KB available)
 
 ### 🔌 Board Connection
 
