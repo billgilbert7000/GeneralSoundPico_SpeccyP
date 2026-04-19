@@ -192,3 +192,15 @@ When powered on, the boards should synchronize. If a blue message **"PicoBus con
 ---
 
 [🔝 Back to top](#english-version) | [🇷🇺 Читать по-русски](#russian-version)
+
+
+<div align="center">
+  <img src="DOCS/z_player.jpg" alt="z_player" width="600">
+  <br>
+  <em>Z-Player</em>
+</div>
+<div align="center">
+  <img src="DOCS/SpeccyP_GS.jpg" alt="SpeccyP_GS" width="600">
+  <br>
+  <em>SpeccyP+GS</em>
+</div>
