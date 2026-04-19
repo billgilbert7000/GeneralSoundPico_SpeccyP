@@ -8,7 +8,6 @@
 ---
 
 <a id="russian-version"></a>
-## 🇷🇺 Русский
 
 Эмулятор **General Sound Pico (GSP)** для SpeccyP https://github.com/billgilbert7000/SpeccyP (Murmulator).
 
@@ -103,7 +102,6 @@
 ---
 
 <a id="english-version"></a>
-## 🇬🇧 English
 
 **General Sound Pico (GSP)** emulator for SpeccyP https://github.com/billgilbert7000/SpeccyP (Murmulator).
 
