@@ -76,7 +76,7 @@
 - [PiCard](https://t.me/zx_divmmc) — телеграм канал ветка PiCard
 
 
-
+### ⚠️ Проект находится в активной разработке. Возможны изменения в совместимости и функциональности.
 
 <div align="center">
   <img src="DOCS/GSP+ZC.JPG" alt="GSP" width="600">
