@@ -5,7 +5,7 @@
 
 
 Эмулятор **General Sound Pico (GSP)** для SpeccyP https://github.com/billgilbert7000/SpeccyP  (Murmulator).
-
+Проект на двух RP2350 или RP2040+RP2350 https://github.com/billgilbert7000/PCB_SpeccyP_GSP (Версии плат M2)
 
 Проект позволяет эмулировать несколько звуковых и периферийных устройств на двух платах Raspberry Pi Pico (RP2040/RP2350), соединённых через высокоскоростной интерфейс **PicoBus**.
 
