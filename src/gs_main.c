@@ -1,5 +1,6 @@
 
 #include "config.h" 
+#include "gs_main.h"
 
 #include <stdio.h>
 //#include "pico/stdio.h"
@@ -115,7 +116,7 @@ extern bool im_ready_loading;
 #define MIDI_IN            0x10
 #define MIDI_OUT           0x11
 //---------------------------------------------------------
-void pico_reset()
+void pico_reset(void)
 {
     
     #define AIRCR_Register (*((volatile uint32_t*)(PPB_BASE + 0x0ED0C)))
@@ -148,7 +149,7 @@ uint8_t rx_buffer[128];// буфер picobus
 // Инициализация/переинициализация picobus  после включения или при hard reset
 void init_picobus(void)
 {  
-   gpio_put(LED_PIN, 1);
+  // gpio_put(LED_PIN, 1);
     picobus_link_init();
 
 
@@ -294,8 +295,7 @@ void fast (picobus_read_write)(void)
       switch (value)
       {
       case GS_INFO:// данные информации о GS
-               // i2c_data[0]=0xff;
-               /*
+                /*
                p.s. В прошивке по смещению #0004 находится номер версии в BCD формате; по
                смещению #0100 находятся оригинальные копирайты (3 строки по 24 символа); по
                смещению #0800 находится информация о патче, строка заканчивается 0.
@@ -309,11 +309,11 @@ void fast (picobus_read_write)(void)
                 snprintf(rx_buffer+32, 32, "GSP lite v%s ", FW_VERSION);
                 #endif
                  send_buffer(  rx_buffer, 64 );
-               gpio_put(LED_PIN, 0);
+        //       gpio_put(LED_PIN, 0);
           return; 
 
       case  GS_RESET: // принудительный reset //  printf("RESET GS\n");
-      gpio_put(LED_PIN, 1);
+ //     gpio_put(LED_PIN, 1);
          pico_reset();
         return; 
 
@@ -392,10 +392,10 @@ int fast(main)(void){
     volatile uint32_t *qmi_m0_timing=(uint32_t *)0x400d000c;
     vreg_disable_voltage_limit();
 
-  //  vreg_set_voltage(VREG_VOLTAGE_1_30);
-    vreg_set_voltage(VREG_VOLTAGE_1_40);
+    vreg_set_voltage(VREG_VOLTAGE_1_30);
+ //   vreg_set_voltage(VREG_VOLTAGE_1_40);
 
-    sleep_ms(300);
+    sleep_ms(100);
     *qmi_m0_timing = 0x60007204;
     set_sys_clock_khz(CPU_MHZ * KHZ, 0);
     *qmi_m0_timing = 0x60007303;
@@ -409,7 +409,7 @@ int fast(main)(void){
    set_sys_clock_khz(CPU_KHZ, false);
 #endif
 
-//	stdio_init_all();//Активирует интерфейс для stdio
+	//stdio_init_all();//Активирует интерфейс для stdio
     // Явный сброс функции GPIO0 и GPIO1
     //gpio_set_function(0, GPIO_FUNC_SIO);
     //gpio_set_function(1, GPIO_FUNC_SIO);
@@ -436,14 +436,14 @@ int fast(main)(void){
 #else // RP2040 или RP2350A   установка всех GPIO НА ВХОД
    for (int gpio = 0; gpio < 30; gpio++)
    {
-       gpio_init(gpio);             // Сброс в SIO, вход
-       gpio_disable_pulls(gpio);    // Отключить подтяжки (по умолчанию)
-       gpio_set_dir(gpio, GPIO_IN); // Направление: вход
+    //   gpio_init(gpio);             // Сброс в SIO, вход
+    //   gpio_disable_pulls(gpio);    // Отключить подтяжки (по умолчанию)
+     //  gpio_set_dir(gpio, GPIO_IN); // Направление: вход
    }
 #endif
 
     // Инициализация последовательного порта
-   stdio_init_all();
+//   stdio_init_all();
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -455,7 +455,7 @@ int fast(main)(void){
      #endif
      inInit(BEEP_PIN);// на вход  для реалиации звука бипера
 
-     
+
 
 
  // Ожидание подключения терминала (если включено)
@@ -527,9 +527,7 @@ else
 
     // Первичная инициализация picobus
     init_picobus();
- #if defined(RTC_NOVA) || defined(RTC_SMUC)
-    rtc_ds1287_init();
- #endif
+
 
  #if defined Z_CONTROLER   
      // инициаизация SD
@@ -551,6 +549,12 @@ else
 
  #endif
 
+      #if defined(RTC_NOVA) || defined(RTC_SMUC)
+      rtc_ds1287_init();
+      #endif
+
+
+
 //------------------------------------------------------------------
 
 mute = 0x00; // включение звука
@@ -559,7 +563,8 @@ mute = 0x00; // включение звука
 	multicore_launch_core1(ZXThread);
    //   основной цикл
 //------------------------------------------------------
-uint64_t int_tick=time_us_64()+AY_SAMPLE_RATE;//Устанавливает время следующего прерывания на 26/2 микросекунд в будущем
+//uint64_t int_tick=time_us_64()+AY_SAMPLE_RATE;//Устанавливает время следующего прерывания на 26/2 микросекунд в будущем
+uint64_t int_tick=time_us_64()+ AY_SAMPLE_RATE;//Устанавливает время следующего прерывания на (MHZ/I2S_FREQ) микросекунд в будущем
     while (1)
     {
 
@@ -571,13 +576,33 @@ uint64_t int_tick=time_us_64()+AY_SAMPLE_RATE;//Устанавливает вр�
        uint64_t tick_time = time_us_64();
     if (tick_time>=int_tick)//Проверяет, наступило ли время для выполнения синхронизированной части эмуляции.
     {   
-       
-        audio_out_i2s_ts();
+/*        
+     static uint32_t uintGS_L0 = 0;
+     static uint32_t uintGS_R0 = 0;
+     static bool g_first = true;
+
+     if (!g_first) 
+     {
+     uintGS_L  = uintGS_L;
+     uintGS_R  = uintGS_R;
+     }
+     else
+     {
+     uintGS_L  = (uintGS_L0 + uintGS_L)/2;
+     uintGS_R  = (uintGS_R0 + uintGS_R)/2;
+     uintGS_L0  = (uintGS_L);
+     uintGS_R0  = (uintGS_R);
+      g_first = false;
+     } 
+
+ */
+
+         audio_out_i2s_ts();
 //
 
-         int_tick=tick_time+AY_SAMPLE_RATE;// Следующее прерывание через 9 мкс ~ 75000Hz
+         int_tick=tick_time+ AY_SAMPLE_RATE;// Следующее прерывание через 9 мкс ~ 75000Hz
 
-         GS_get_sound_LR_sample(); 
+       GS_get_sound_LR_sample(); 
 
              #ifdef MIDI
              static uint8_t x = 0;

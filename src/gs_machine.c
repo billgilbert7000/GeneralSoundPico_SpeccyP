@@ -99,13 +99,9 @@ void fast (GS_get_sound_LR_sample)()
    //  outGS_L=mix_sample((int16_t)(volume_1*(channel1-128)),(int16_t)(volume_4*(channel4-128))); // left  1 4
   //   outGS_R=mix_sample((int16_t)(volume_2*(channel2-128)),(int16_t)(volume_3*(channel3-128))); // right 2 3  
      // безнаковое число uint16_t — от 0 до 65 535
+
      uintGS_L  = ((volume_1*channel1) + (volume_4*channel4));//*(audio_buster+1);  // 255 * 63 + 255 * 63 = 16065
      uintGS_R  = ((volume_2*channel2) + (volume_3*channel3));//*(audio_buster+1);  // 255 * 63 + 255 * 63 = 16065
-
-//return (int16_t)(sample>>2 ) -32768;// >>2 - 32768
-
-  /*   outGS_L=(int16_t)(volume_1*(channel1-128))+(int16_t)(volume_4*(channel4-128)); // left  1 4
-    outGS_R=(int16_t)(volume_2*(channel2-128))+(int16_t)(volume_2*(channel2-128)); // right 2 3    */ 
 
 }; 
 //##################################################################################
@@ -534,13 +530,13 @@ __attribute__((always_inline))  inline static void fast(machine_cpu_out)(Machine
             volume_1=value;//<<1;
             break; 
         case 0x07:  //volume_2
-            volume_2=value;//<<1;
+            volume_2=value;//<<2;
             break; 
         case 0x08:  //volume_2
-            volume_3=value;//<<1;
+            volume_3=value;//<<2;
             break; 
         case 0x09:  //volume_4
-            volume_4=value;//<<1;
+            volume_4=value;//<<2;
             break; 
          
            
@@ -659,6 +655,17 @@ void machine_reset(Machine *self)
 //##############################################
 void zx_machine_init()
 {
+
+    // Инициализация каналов (тишина)
+    channel1 = 128;
+    channel2 = 128;
+    channel3 = 128;
+    channel4 = 128;
+    volume_1 = 0;
+    volume_2 = 0;
+    volume_3 = 0;
+    volume_4 = 0;
+
 	  gs_mem_init();
 
     machine_initialize(z1);  // Инициализируем машину
@@ -696,17 +703,20 @@ __attribute__((always_inline)) inline void fast(zx_machine_main_loop_start)(void
 
         z80_int(&z1->cpu, false);// Генерация прерывания Z80
 
+        
+ //GS_get_sound_LR_sample(); 
+ //audio_out_i2s_ts();
+
     }
     else
     {
  
       int32_t dt=int_tick-tick_time;
- 
       dt=(dt>0)?dt:1;
  
-    //   z80_run(&z1->cpu, dt*GSCPU_FRQ);// 18MHz  
      #ifdef PICO_RP2350
      dt= (dt << 4) + (dt << 2);  // dt*20 МГц 
+   //   dt= dt*24 ;  // dt*20 МГц 
      #else 
       dt= (dt << 4);  // dt*16 МГц 
      #endif  

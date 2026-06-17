@@ -30,7 +30,8 @@ endif()
 # Выберите плату (раскомментировать одну строку):
 
 #set(M_BOARD MURM1)
-set(M_BOARD MURMGS)
+set(M_BOARD GS_HW1) #
+#set(M_BOARD GS_HW1) #MURMGS   #MURM1
 #set(M_BOARD MURM2)
 #set(M_BOARD PI_CARD)
 
@@ -47,8 +48,8 @@ if(GSP_CONFIG STREQUAL "GSP_FULL")
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-        MIDI
-        #RTC_NOVA
+        #MIDI
+        RTC_NOVA
         #RTC_SMUC
     )
 
@@ -60,14 +61,14 @@ elseif(GSP_CONFIG STREQUAL "GSP_NO_PSRAM")
         RAM_PAGES=5
         TURBOSOUND
         Z_CONTROLER
-        #RTC_NOVA
+        RTC_NOVA
         #RTC_SMUC
     )
     
 elseif(GSP_CONFIG STREQUAL "GSP_LITE")
     set(GSP_CONFIG_DEFINITIONS 
         
-        CPU_MHZ=378 # 378 MHz
+        CPU_MHZ=400##375 # 378 MHz
         NO_PSRAM
         RAM_PAGES=4
         TURBOSOUND
@@ -84,7 +85,7 @@ else()
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-        #RTC_NOVA
+        RTC_NOVA
         #RTC_SMUC
     )
 
@@ -105,7 +106,7 @@ endif()
 include(pico_sdk_import.cmake)
 ## инициализация проекта
 project(GSP C CXX ASM)
-set (PORT_VERSION "1.5.4") 
+set (PORT_VERSION "1.6.8") 
 
 
 set(CMAKE_C_STANDARD 11)
@@ -185,7 +186,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # Конфигурация в зависимости от GSP_CONFIG
 ${GSP_CONFIG_DEFINITIONS}
 
-CPU_KHZ=CPU_MHZ*1000 # 378000 KHz
+CPU_KHZ=CPU_MHZ*1000 # 375000 KHz 378
 PICOBUS_SPEED=20   #// 160000000 = 20MB/s // 80000000 = 10MB/s
 
 ############################################################
@@ -219,7 +220,6 @@ PBUS_IN_PIN=26
 PBUS_PIO=pio0   #only pio 0
 
 PBUS_CS=255  # если 255 то работает без CS PicoBus   29  # CS PicoBus 
-#define PICOBUS_BAUDRATE (1000*1000)   CS BUS  // Скорость шины picobus 
 
 ## Beep
 BEEP_PIN=28  # на IN
@@ -246,10 +246,54 @@ PIO_I2S=pio0 # Only  pio0 !
 SM_I2S=2
 DEFAULT_VOLUME_I2S=50
 AUDIO_BUSTER_DEFAULT=254
+)
+endif()
+#######################################################
+#    GS_HW1
+#    PIO 0 PS/2  and I2S or HARD_AY_595
+#    PIO 1 VIDEO TFT PSRAM_BOARD(SM=2)
+#######################################################
+if( ${M_BOARD} MATCHES "GS_HW1")
+set (M_VERSION m2)# версия платы
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+##PicoBus
+PBUS_OUT_PIN=13
+PBUS_IN_PIN=14
+PBUS_PIO=pio0  #only pio 0
+
+PBUS_CS=255  # если 255 то работает без CS PicoBus   29  # CS PicoBus 
+#define PICOBUS_BAUDRATE (1000*1000)   CS BUS  // Скорость шины picobus 
+
+## Beep
+BEEP_PIN=12  # на IN
+
+
+##SDCARD
+SDCARD_SPI_BUS=spi0
+SDCARD_PIN_SPI0_CS=5
+SDCARD_PIN_SPI0_SCK=6
+SDCARD_PIN_SPI0_MOSI=7
+SDCARD_PIN_SPI0_MISO=4
+SDCARD_SPI_BUS_FREQ_CLK=30*1000*1000# 30 MHz
+
+##PSRAM
+PSRAM_DIV=2.0 #  1.4 // делитель частоты psram если 315 то 1.4 если меньше то 1.0
+PSRAM_BUTTER_PIN_CS=8 #это PSRAM_PIN_CS 
+
+##AUDIO i2s
+I2S_DATA_PIN=9      # GP 9.1=>i2s DATA
+I2S_CLK_BASE_PIN=10 # GP10.1=>i2s SCLK и 11 GP11.1=>i2s LRCK
+I2S_FREQ=75000##37500 ##111111 ##37500 ##96000 ##111111 Hz
+PIO_I2S=pio0 # Only  pio0 !
+SM_I2S=2
+DEFAULT_VOLUME_I2S=50
+AUDIO_BUSTER_DEFAULT=254
 
 
 )
 endif()
+
+
 #######################################################
 #    MURM1
 #    
@@ -402,7 +446,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PICO_RP2350
         ## AY-3-8910 
         AY_DELTA=2
-        AY_SAMPLE_RATE=9#(-1000000 / (4* 48000) ) ##//-9// 
+     ###   AY_SAMPLE_RATE=26###9#(-1000000 / (4* 48000) ) ##//-9// 
         GSCPU_FRQ=20# 30 Мгц RP2350 18 МГц RP2040
 )
 endif()
@@ -467,6 +511,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 )
 endif()
 
+if( ${M_BOARD} MATCHES "GS_HW1")
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    FW_VERSION="${PORT_VERSION} [${M_VERSION}${P_VERSION}]"
+)
+endif()
 
 if( ${M_BOARD} MATCHES "MURM1")
 target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -522,5 +571,5 @@ pico_add_extra_outputs(${PROJECT_NAME})
 
 
 # Включаем USB для вывода printf 1
-pico_enable_stdio_usb(${PROJECT_NAME} 0)
-pico_enable_stdio_uart(${PROJECT_NAME} 0)
+##pico_enable_stdio_usb(${PROJECT_NAME} 0)
+##pico_enable_stdio_uart(${PROJECT_NAME} 0)

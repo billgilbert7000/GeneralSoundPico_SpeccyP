@@ -531,7 +531,7 @@ void init_audio_tables_optimized(void) {
     
     // Таблица для громкости i2s : volume * 256 / 100
     for (int i = 0; i <= 100; i++) {
-        volume_mult_table[i] = (i * 256) / 100;
+        volume_mult_table[i] = (i * 256 *  (audio_buster+1)) / 100;
     }
 }
 //###################################################################
@@ -549,26 +549,100 @@ void set_audio_volume(uint8_t volume_percent) {
             //копирование таблицы AY в RAM  и умножение на audio_buster
             for (size_t i = 0; i < 16; i++)
             {
-                ampls_AY_table[i]=const_ampls_AY_table[i] *  (audio_buster+1);
+                ampls_AY_table[i]=const_ampls_AY_table[i]/*  *  (audio_buster+1) */;
             }
-   
+   init_audio_tables_optimized();
 }
 
 void set_audio_buster(void) {
             //копирование таблицы AY в RAM  и умножение на audio_buster
             for (size_t i = 0; i < 16; i++)
             {
-                ampls_AY_table[i]=const_ampls_AY_table[i] *  (audio_buster+1);
+                ampls_AY_table[i]=const_ampls_AY_table[i]/*  *  (audio_buster+1) */;
             }
+            init_audio_tables_optimized();
 }
 
 uint8_t get_audio_volume(void) {
     return current_volume;
 }
 //##################################################################
+void fast(audio_out_i2s_ts_new)(void)
+{
+    static uint32_t gs_prev_L = 0, gs_prev_R = 0;
+    static uint32_t gs_cur_L = 0, gs_cur_R = 0;
+    static bool gs_updated = false;  // был ли обновлён GS на этом вызове
+    
+    /* Обновляем GS-сэмплы, только когда они реально изменились (37.5 кГц) */
+    if (gs_updated == false) {
+        gs_prev_L = gs_cur_L;
+        gs_prev_R = gs_cur_R;
+        gs_cur_L = uintGS_L;   // свежее значение (приходит 37500 Гц)
+        gs_cur_R = uintGS_R;
+        gs_updated = true;
+    }
+    
+    /* Интерполяция: чередуем оригинал и среднее */
+    static bool even = true;
+    uint32_t gs_out_L, gs_out_R;
+    
+    if (even) {
+        /* Первый выходной сэмпл (из 2) — оригинал */
+        gs_out_L = gs_cur_L;
+        gs_out_R = gs_cur_R;
+    } else {
+        /* Второй выходной сэмпл — среднее между предыдущим и текущим */
+        gs_out_L = (gs_prev_L + gs_cur_L) >> 1;
+        gs_out_R = (gs_prev_R + gs_cur_R) >> 1;
+        gs_updated = false;  /* Оба сэмпла для этого входного отправлены */
+    }
+    even = !even;
+    
+    /* Дальше ваш обычный код */
+    AY_data = get_AY_Out(AY_DELTA);			
+    AY_data1 = get_AY_Out1(AY_DELTA);
+    
+    uint16_t beep_out = gpio_get(BEEP_PIN) ? 0 : beep_volume;
+    
+    uint32_t sumL = AY_data[0] + AY_data[1] + AY_data1[0] + AY_data1[1] + beep_out;
+    uint32_t sumR = AY_data[2] + AY_data[1] + AY_data1[2] + AY_data1[1] + beep_out;
+    
+    sumL = (sumL > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumL;
+    sumR = (sumR > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumR;
+    
+    uint32_t totalL = ay_scale_table[sumL] + gs_out_L;
+    uint32_t totalR = ay_scale_table[sumR] + gs_out_R;
+    
+    if (totalL > OUTPUT_MAX_VALUE) totalL = OUTPUT_MAX_VALUE;
+    if (totalR > OUTPUT_MAX_VALUE) totalR = OUTPUT_MAX_VALUE;
+    
+    #ifndef MIDI
+    int32_t outL = (int32_t)totalL - OUTPUT_MIDPOINT;
+    int32_t outR = (int32_t)totalR - OUTPUT_MIDPOINT;
+    #endif
 
+    #ifdef MIDI
+    int32_t outL = ((int32_t)totalL + midi_sound) - OUTPUT_MIDPOINT;
+    int32_t outR = ((int32_t)totalR + midi_sound) - OUTPUT_MIDPOINT;
+    #endif 
+    
+    outL = (outL * volume_mult_table[current_volume]) >> 8;
+    outR = (outR * volume_mult_table[current_volume]) >> 8;
+    
+    outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
+    outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
+
+    if (!mute)
+        i2s_out((int16_t)outR, (int16_t)outL);
+}
+
+
+
+
+//##################################################################
 void fast (audio_out_i2s_ts)(void)
 {	
+
     AY_data = get_AY_Out(AY_DELTA);			
     AY_data1 = get_AY_Out1(AY_DELTA);
     
@@ -595,13 +669,15 @@ void fast (audio_out_i2s_ts)(void)
     #endif
 
     #ifdef MIDI
-       int32_t outL = ((int32_t)totalL  - OUTPUT_MIDPOINT ) + midi_sound   ;
-      int32_t outR = ((int32_t)totalR   - OUTPUT_MIDPOINT ) + midi_sound   ;
+    /*    int32_t outL = ((int32_t)totalL  - OUTPUT_MIDPOINT ) + midi_sound   ;
+      int32_t outR = ((int32_t)totalR   - OUTPUT_MIDPOINT ) + midi_sound   ; */
+
+
 /*       outL += (midi_sound  );
       outR += (midi_sound );  */
 
-/*       int32_t outL = ((int32_t)totalL + midi_sound) - OUTPUT_MIDPOINT  ;
-      int32_t outR = ((int32_t)totalR + midi_sound) - OUTPUT_MIDPOINT ; */
+       int32_t outL = ((int32_t)totalL + midi_sound) - OUTPUT_MIDPOINT  ;
+      int32_t outR = ((int32_t)totalR + midi_sound) - OUTPUT_MIDPOINT ; 
 
 
 
@@ -616,8 +692,8 @@ void fast (audio_out_i2s_ts)(void)
     outR = (outR * volume_mult_table[current_volume]) >> 8;
     
     // Ограничиваем результат   можно и без этого
- //   outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
- //  outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
+    outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
+    outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
 
    if (!mute)
     i2s_out((int16_t)outR, (int16_t)outL);

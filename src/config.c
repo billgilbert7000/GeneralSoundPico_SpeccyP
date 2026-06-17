@@ -49,8 +49,8 @@ int32_t delta_time;
 uint16_t outL = 0;
 uint16_t outR = 0;
 
-uint16_t uintGS_L = 0;
-uint16_t uintGS_R = 0;
+uint32_t uintGS_L = 0;
+uint32_t uintGS_R = 0;
 
 
 int16_t outGS_L = 0;

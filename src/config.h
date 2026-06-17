@@ -136,8 +136,8 @@ extern uint16_t outR;
 extern int16_t outGS_L;
 extern int16_t outGS_R;
 
-extern uint16_t uintGS_L;
-extern uint16_t uintGS_R;
+extern uint32_t uintGS_L;
+extern uint32_t uintGS_R;
 
     #ifdef MIDI
 extern int32_t midi_sound;
