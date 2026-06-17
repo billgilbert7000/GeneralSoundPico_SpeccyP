@@ -116,18 +116,6 @@ set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}  -funroll-loops -ffast-math -feliminate-un
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math -feliminate-unused-debug-types -ffunction-sections -fdata-sections  -O3")
 
 
-##set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -ffast-math  -Os")
-#set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -ffast-math  -O3")
- ##set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -funroll-loops -ffast-math -feliminate-unused-debug-types -ffunction-sections -fdata-sections -Os")
-#-O2 оптимизация
-#оптимизации циклов -funroll-loops
-#-устранение неиспользуемых-отладочных-типов -feliminate-unused-debug-types
-# помещает каждую функцию в отдельную секцию -ffunction-sections 
-# -fdata-sections помещает каждую функцию или элемент данных в отдельную секцию в выходном файле
-#-Wall  Включает предупреждения
-#-fito удаение неиспользуемых функций
-#set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
-
 ### инициализация Pico SDK
 pico_sdk_init()
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/build")
@@ -179,7 +167,6 @@ pico_set_program_version(GSP ${PORT_VERSION})
 
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-###############################################
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 
@@ -189,7 +176,7 @@ ${GSP_CONFIG_DEFINITIONS}
 CPU_KHZ=CPU_MHZ*1000 # 375000 KHz 378
 PICOBUS_SPEED=20   #// 160000000 = 20MB/s // 80000000 = 10MB/s
 
-############################################################
+####################################
 ###   для эмулятора Z80 REDCODE
 Z80_STATIC
 Z80_EXTERNAL_HEADER="Z80_compat.h"
@@ -201,7 +188,7 @@ Z80_WITH_PRECOMPUTED_DAA
 #Z80_MODEL_ZILOG_NMOS
 ##Z80_MODEL_ZILOG_CMOS
 
-############################################################
+#####################################
 
 ${PLATFORM_DEFINITIONS}
 )
