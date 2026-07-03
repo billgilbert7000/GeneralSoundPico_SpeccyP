@@ -39,12 +39,12 @@ extern void (*audio_out)(void);
 
 uint8_t fast (AY_get_reg)();
 void fast(AY_set_reg)(uint8_t);
-uint16_t*  fast(get_AY_Out)(uint8_t);
+uint16_t*  fast(get_AY_Out)(void);
 //==============================================
 ///void AY_select_reg1 (uint8_t N_reg);
 uint8_t fast(AY_get_reg1)();
 void fast(AY_set_reg1)(uint8_t);
-uint16_t*  fast(get_AY_Out1)(uint8_t);
+uint16_t*  fast(get_AY_Out1)(void);
 //==============================================
 
  void  AY_reset();

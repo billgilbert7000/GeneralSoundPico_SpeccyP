@@ -55,11 +55,6 @@ uint8_t rtc_adress =0xff;
 bool rtc_adress_data;
 bool rtc_enable; 
 
-//    Настройки для DS1287
-#define DS1307_I2C_ADDR 0x68
-#define I2C_PORT i2c1
-#define I2C_SDA_PIN 2
-#define I2C_SCL_PIN 3
 //#####################################################################################
 // Макросы для преобразования BCD
 #define bin2bcd(x) (((x) / 10) << 4 | (x) % 10)
@@ -71,7 +66,7 @@ uint64_t system_base_time = 0;
 // МАССИВ РЕГИСТРОВ RTC
 uint8_t ds1287_BIN[0x7f] = {0}; // Преобразованные BIN значения
 
-uint8_t last_hour = 255;// нужно дя определения смены суток
+uint8_t last_hour = 255;// нужно для определения смены суток
 //#######################################################################################
 // Инициализация I2C для DS1307
 void DS1307_i2c_init(void) {
@@ -80,7 +75,7 @@ void DS1307_i2c_init(void) {
     
     gpio_set_function(I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL_PIN, GPIO_FUNC_I2C);
-    i2c_init(I2C_PORT, 100000);  // 1000 kHz
+    i2c_init(I2C_PORT, 10000);  // 10 kHz
 }
 //########################################################################
 // Вычисление Unix времени из данных DS1307
@@ -120,9 +115,8 @@ uint64_t calculate_unix_from_DS1307(const uint8_t *time_data) {
 // Чтение времени и даты из DS1307 и вычисление base_time
 bool read_DS1307_and_calc_base(void) {
     uint8_t reg = 0x00;
-    uint8_t time_data[128];
+    uint8_t time_data[16];
     time_data[0] = 0;
-
     // Читаем регистры  времени из DS1307
     if (i2c_write_blocking(I2C_PORT, DS1307_I2C_ADDR, time_data, 1, true) !=1) 
     {
@@ -146,8 +140,6 @@ bool read_DS1307_and_calc_base(void) {
     ds1287_BIN[8] = bcd2bin(time_data[5] & 0x1F); // месяц
     ds1287_BIN[9] = bcd2bin(time_data[6]);        // год
     
-
-
     // Вычисляем Unix время из данных RTC (используем BIN значения)
     uint64_t rtc_unix = calculate_unix_from_DS1307(time_data);
     
@@ -188,22 +180,19 @@ uint8_t* get_current_time_bin(void) {
 }
 //######################################################
 
-//######################################################################################
+//######################################################
 // получение даты/времени из регистров DS1287 
 uint8_t rtc_read_registr(uint8_t registr)
 {
-   if (!rtc_enable) return 0xff;
-
+    if (!rtc_enable) return 0xff;
     update_time_from_unix(); 
-
-
-
-   return ds1287_BIN[registr];
+    return ds1287_BIN[registr];
 }   
-//#######################################################################################
-   // у DS1307 пользовательских регистров нет только 0x00 до 0x08
+//#############################################################################
+   // у DS1307  только 0x00 до 0x3F
    // ЗДЕСЬ ДОЛЖНА БЫТЬ ПРОЦЕДУРА ЗАПИСИ РЕГИСТРОВ В ЭНЕРГОНЕЗАВИСИМУОЙ ПАМЯТЬ!
    // ИЛИ В FLASH PICO 
+   // ds1287_BIN[128]  виртуальные регистры DS1287
 // запись даты/времени в регистры DS1287  и DS1307 
 void rtc_write_registr(uint8_t adress_reg, uint8_t value)
 {   
@@ -234,15 +223,58 @@ void rtc_write_registr(uint8_t adress_reg, uint8_t value)
 void rtc_ds1287_init(void)
 { 
    DS1307_i2c_init(); // Инициализация I2C для DS1307
-
-  g_delay_ms(100);
+   g_delay_ms(1); // ???
    rtc_enable = read_DS1307_and_calc_base();// Чтение времени и даты из DS1307 и вычисление base_time
-
-  
-   // у DS1307 пользовательских регистров нет только 0x00 до 0x12
-   // ЗДЕСЬ ДОЛЖНА БЫТЬ ПРОЦЕДУРА ЧТЕНИЯ РЕГИСТРОВ ИЗ ЭНЕРГОНЕЗАВИСИМУОЙ ПАМЯТИ!
-   // ИЛИ ИЗ FLASH PICO read_pico_flash
-   //read_pico_flash(куда считывать данные rtc_registr  0x0A , длина 0x7F-x0A ); 
 } 
-//########################################################################################
+//#######################################################################################
+// Формирование строки с датой и временем в формате "DD.MM.YYYY HH:MM:SS"
+void rtc_get_datetime_str(char *buffer, size_t buffer_size) {
+    if (!rtc_enable || buffer == NULL || buffer_size < 20) {
+        if (buffer != NULL && buffer_size > 0) {
+            buffer[0] = '\0';
+        }
+        return;
+    }
+    
+    // Обновляем время из Unix
+    update_time_from_unix();
+    
+    // Получаем значения из ds1287_BIN
+    uint8_t sec  = ds1287_BIN[DS1287_SEC];
+    uint8_t min  = ds1287_BIN[DS1287_MIN];
+    uint8_t hour = ds1287_BIN[DS1287_HOUR];
+    uint8_t day  = ds1287_BIN[DS1287_DATE];
+    uint8_t mon  = ds1287_BIN[DS1287_MONTH];
+    uint8_t year = ds1287_BIN[DS1287_YEAR];
+    
+    // Формируем строку в формате "DD.MM.YYYY HH:MM:SS"
+    snprintf(buffer, buffer_size, "%02d.%02d.%04d %02d:%02d:%02d",
+             day, mon, 2000 + year, hour, min, sec);
+}
+//#######################################################################################
+// Формирование строки с временем в формате "HH:MM:SS"
+void rtc_get_time_str(char *buffer, size_t buffer_size) {
+    if (!rtc_enable || buffer == NULL || buffer_size < 9) {
+        if (buffer != NULL && buffer_size > 0) {
+            buffer[0] = '\0';
+        }
+        return;
+    }
+    
+    // Обновляем время из Unix
+    update_time_from_unix();
+    
+    // Получаем значения из ds1287_BIN
+    uint8_t sec  = ds1287_BIN[DS1287_SEC];
+    uint8_t min  = ds1287_BIN[DS1287_MIN];
+    uint8_t hour = ds1287_BIN[DS1287_HOUR];
+    uint8_t day  = ds1287_BIN[DS1287_DATE];
+    uint8_t mon  = ds1287_BIN[DS1287_MONTH];
+    uint8_t year = ds1287_BIN[DS1287_YEAR];
+    
+    // Формируем строку в формате "HH:MM:SS"
+    snprintf(buffer, buffer_size, "%02d:%02d:%02d",
+              hour, min, sec);
+}
+//#######################################################################################
 #endif

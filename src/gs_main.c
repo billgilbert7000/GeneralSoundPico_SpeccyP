@@ -3,11 +3,7 @@
 #include "gs_main.h"
 
 #include <stdio.h>
-//#include "pico/stdio.h"
-//#include <pico/stdlib.h>
 #include "hardware/gpio.h"
-
-
 #include <pico/stdlib.h>
 #include "pico/multicore.h"
 #include "hardware/flash.h"
@@ -23,8 +19,6 @@
 
 #include "string.h"
 
-//#include "psram_spi.h"
-
 #include "gs_machine.h"
 
 #include "audio_i2s.h"
@@ -35,7 +29,7 @@
 #include "rtc/rtc_ds1287.h"
 
 #ifdef MIDI
-#include "midi/general-midi.h"
+#include "midi/general-midi_wt.h"
 #endif
 
 #if PICO_RP2350
@@ -51,7 +45,6 @@ bool is_SD_active=false;
 //===============================================================
 void out_init(uint pin,bool val)
 {
-
     gpio_init(pin);
     gpio_set_dir(pin, GPIO_OUT); 
     gpio_put(pin,val);    
@@ -71,9 +64,8 @@ static inline void  WRITE_SD_BYTE(uint8_t data)
 
 }
 //============================================================
-
-extern bool im_z80_stop;
-extern bool im_ready_loading;
+//extern bool im_z80_stop;
+//extern bool im_ready_loading;
 
 // ========== КОНФИГУРАЦИЯ ==========
 // формат передачи 
@@ -85,6 +77,8 @@ extern bool im_ready_loading;
 #define TS_RESET        0x03 // второй байт команды
 #define TS_BUSTER       0x04 // второй байт команды третий  значение 
 #define MUTE_GLOBAL     0x05 // Полное отключение звука
+#define RTC_DATE_TIME   0x06 // Передача строки Data Time  
+#define RTC_TIME        0x07 // Передача строки Time  
 
 // дефайны эмуляции портов GS  
 #define PICOBUS_CONNECT    0x77    // команда инициализации
@@ -149,7 +143,7 @@ uint8_t rx_buffer[128];// буфер picobus
 // Инициализация/переинициализация picobus  после включения или при hard reset
 void init_picobus(void)
 {  
-  // gpio_put(LED_PIN, 1);
+  
     picobus_link_init();
 
 
@@ -347,11 +341,19 @@ void fast (picobus_read_write)(void)
         mute =0x00; // включение звука
         return; 
 
-
+       #ifdef RTC
+       case RTC_DATE_TIME:
+       rtc_get_datetime_str(rx_buffer, 20);
+       send_buffer(rx_buffer, 20 );
+       return; 
+      
+       case RTC_TIME: // 00:00:00 len=9
+       rtc_get_time_str(rx_buffer, 9);
+       send_buffer(rx_buffer, 9 );
+       return; 
+       #endif
       }
            
-
-
       default:
      
         break;
@@ -447,7 +449,7 @@ int fast(main)(void){
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
-	g_delay_ms(100);
+//	g_delay_ms(100);
     gpio_put(LED_PIN, 0);
 
      #if (PBUS_CS != 255) 
@@ -524,7 +526,7 @@ else
 //--------------------------------------------
 // GS 
      audio_init();
-
+    gpio_put(LED_PIN, 1);
     // Первичная инициализация picobus
     init_picobus();
 
@@ -553,7 +555,7 @@ else
       rtc_ds1287_init();
       #endif
 
-
+  gpio_put(LED_PIN, 0);
 
 //------------------------------------------------------------------
 
@@ -563,55 +565,44 @@ mute = 0x00; // включение звука
 	multicore_launch_core1(ZXThread);
    //   основной цикл
 //------------------------------------------------------
+ #define AY_SAMPLE_RATE (9)//(MHZ/I2S_FREQ) 1 Mhz / 111111 Hz = 9
+// #define AY_SAMPLE_RATE (22)//(MHZ/I2S_FREQ) 1 Mhz / 44100 Hz = 22.675
+
 //uint64_t int_tick=time_us_64()+AY_SAMPLE_RATE;//Устанавливает время следующего прерывания на 26/2 микросекунд в будущем
 uint64_t int_tick=time_us_64()+ AY_SAMPLE_RATE;//Устанавливает время следующего прерывания на (MHZ/I2S_FREQ) микросекунд в будущем
     while (1)
     {
-
-     //  audio_mixer();
-
-   //    picobus_read_write();// мониторинг шины picobus
-       
-     //  audio_out();
        uint64_t tick_time = time_us_64();
-    if (tick_time>=int_tick)//Проверяет, наступило ли время для выполнения синхронизированной части эмуляции.
+    if (tick_time>=int_tick)//Проверяет, наступило ли время для audio out TS.
     {   
-/*        
-     static uint32_t uintGS_L0 = 0;
-     static uint32_t uintGS_R0 = 0;
-     static bool g_first = true;
-
-     if (!g_first) 
-     {
-     uintGS_L  = uintGS_L;
-     uintGS_R  = uintGS_R;
-     }
-     else
-     {
-     uintGS_L  = (uintGS_L0 + uintGS_L)/2;
-     uintGS_R  = (uintGS_R0 + uintGS_R)/2;
-     uintGS_L0  = (uintGS_L);
-     uintGS_R0  = (uintGS_R);
-      g_first = false;
-     } 
-
- */
 
          audio_out_i2s_ts();
-//
 
-         int_tick=tick_time+ AY_SAMPLE_RATE;// Следующее прерывание через 9 мкс ~ 75000Hz
+         int_tick=tick_time+ AY_SAMPLE_RATE;// Следующее прерывание через AY_SAMPLE_RATE=9 мкс ~ 111111Hz
 
        GS_get_sound_LR_sample(); 
 
+       // Собираем MIDI-сэмпл
+       // 111111 Hz / 22050 Hz MIDI = 5.039   x = 5 
+       // 75000 Hz  / 22050 HZ MIDI = 3.401   x = 3 
+       // 44100 Hz  / 22050 HZ MIDI = 2       x = 2
              #ifdef MIDI
              static uint8_t x = 0;
-             if (x&1)
-             midi_sound= midi_sample();
+             if (x==5)
+             {
+             x=0;   
+             midi_sample();
+             }
              x++;
+             #else
+        //    midi_sound= = 0;
+            #endif
 
-             #endif 
-    }
+
+
+
+
+            }
     else 
     {
     #if (PBUS_CS==255) 

@@ -48,7 +48,8 @@ if(GSP_CONFIG STREQUAL "GSP_FULL")
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-        #MIDI
+      MIDI
+        RTC
         RTC_NOVA
         #RTC_SMUC
     )
@@ -85,7 +86,8 @@ else()
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-        RTC_NOVA
+        MIDI
+      #  RTC_NOVA
         #RTC_SMUC
     )
 
@@ -106,8 +108,11 @@ endif()
 include(pico_sdk_import.cmake)
 ## инициализация проекта
 project(GSP C CXX ASM)
-set (PORT_VERSION "1.6.8") 
+set (PORT_VERSION "1.7.0") 
 
+###############
+
+###############
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 17)
@@ -137,10 +142,21 @@ file(GLOB_RECURSE SRC
  "src/zx_emu/rom/*.h" 
  "src/picobus/*.c"
  "src/sound_ay/*.c"
- "src/rtc/*.c"
- "src/midi/*.c"
+  "src/midi/*.c"
  "src/midi/*.h"
 )
+
+# условное подключение RTC файлов
+if(${M_BOARD} MATCHES "GS_HW1")
+    file(GLOB_RECURSE RTC_SRC
+        "src/rtc/rtc_ds1287.c"
+        "src/rtc/rtc_ds1287.h"
+    )
+    list(APPEND SRC ${RTC_SRC})
+    message(STATUS "RTC DS1287 включен для платы GS_HW1")
+endif()
+
+
 message(STATUS "Add source files:")
 foreach (SRC_FILE IN LISTS SRC)
     message(STATUS "${SRC_FILE}")
@@ -151,6 +167,21 @@ message(STATUS "")
 add_executable(${PROJECT_NAME} ${SRC})
 ##pico_generate_pio_header(pico-pio-link-2 ${CMAKE_CURRENT_LIST_DIR}/picoputer.pio)
 
+######################################################################################
+# ===== Включение GM банка (готовый C файл) =====
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/gm_bank_data.c)
+    message(STATUS "GM банк найден как C файл")
+    target_sources(${PROJECT_NAME} PRIVATE 
+        gm_bank_data.c
+        bank_include.c
+    )
+    target_compile_definitions(${PROJECT_NAME} PRIVATE GM_BANK_PYTHON)
+else()
+    message(WARNING "Файл gm_bank_data.c не найден, создайте его из gm_bank.bin")
+endif()
+# =====================================================
+
+######################################################################################
 
 if( ${PICO_PLATFORM} MATCHES "rp2040" )
 	pico_define_boot_stage2(slower_boot2 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
@@ -228,7 +259,7 @@ PSRAM_BUTTER_PIN_CS=8 #это PSRAM_PIN_CS для платы murm1 GSP врем�
 ##AUDIO i2s
 I2S_DATA_PIN=11
 I2S_CLK_BASE_PIN=12  # и 13
-I2S_FREQ=75000#37500 ##96000 ##111111 Hz
+I2S_FREQ=111111##75000##37500 ##111111 ##37500 ##96000 ##111111 Hz
 PIO_I2S=pio0 # Only  pio0 !
 SM_I2S=2
 DEFAULT_VOLUME_I2S=50
@@ -247,14 +278,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 PBUS_OUT_PIN=13
 PBUS_IN_PIN=14
 PBUS_PIO=pio0  #only pio 0
-
 PBUS_CS=255  # если 255 то работает без CS PicoBus   29  # CS PicoBus 
 #define PICOBUS_BAUDRATE (1000*1000)   CS BUS  // Скорость шины picobus 
-
 ## Beep
 BEEP_PIN=12  # на IN
-
-
 ##SDCARD
 SDCARD_SPI_BUS=spi0
 SDCARD_PIN_SPI0_CS=5
@@ -262,49 +289,39 @@ SDCARD_PIN_SPI0_SCK=6
 SDCARD_PIN_SPI0_MOSI=7
 SDCARD_PIN_SPI0_MISO=4
 SDCARD_SPI_BUS_FREQ_CLK=30*1000*1000# 30 MHz
-
 ##PSRAM
 PSRAM_DIV=2.0 #  1.4 // делитель частоты psram если 315 то 1.4 если меньше то 1.0
 PSRAM_BUTTER_PIN_CS=8 #это PSRAM_PIN_CS 
-
 ##AUDIO i2s
 I2S_DATA_PIN=9      # GP 9.1=>i2s DATA
 I2S_CLK_BASE_PIN=10 # GP10.1=>i2s SCLK и 11 GP11.1=>i2s LRCK
-I2S_FREQ=75000##37500 ##111111 ##37500 ##96000 ##111111 Hz
+I2S_FREQ=111111##75000##37500 ##111111 ##37500 ##96000 ##111111 Hz
 PIO_I2S=pio0 # Only  pio0 !
 SM_I2S=2
 DEFAULT_VOLUME_I2S=50
 AUDIO_BUSTER_DEFAULT=254
-
-
+#  Настройки для RTC есть только на этой плате GS_HW1
+DS1307_I2C_ADDR=0x68
+I2C_PORT=i2c1
+I2C_SDA_PIN=2
+I2C_SCL_PIN=3
 )
 endif()
 
-
 #######################################################
 #    MURM1
-#    
-#    
 #######################################################
 if( ${M_BOARD} MATCHES "MURM1")
 set (M_VERSION m1)# версия платы
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 MURM1
-
 ##PicoBus
 PBUS_OUT_PIN=14
 PBUS_IN_PIN=15
 PBUS_PIO=pio0   #only pio 0
-
-
 PBUS_CS=255  # если 255 то работает без CS PicoBus   29  # CS PicoBus 
-
-
-
 ## Beep
 BEEP_PIN=16  # на IN
-
-
 ##SDCARD
 SDCARD_SPI_BUS=spi0
 SDCARD_PIN_SPI0_CS=5
@@ -312,22 +329,18 @@ SDCARD_PIN_SPI0_SCK=2
 SDCARD_PIN_SPI0_MOSI=3
 SDCARD_PIN_SPI0_MISO=4
 SDCARD_SPI_BUS_FREQ_CLK=30*1000*1000# 30 MHz
-
 ##PSRAM
 PSRAM_DIV=2.0 #  1.4 // делитель частоты psram если 315 то 1.4 если меньше то 1.0
 PSRAM_BUTTER_PIN_CS=19 #это PSRAM_PIN_CS для платы murm1 psram бутерброд
 #PSRAM_BUTTER_PIN_CS=8 #это PSRAM_PIN_CS для платы murm1 GSP временно так надо было
-
 ##AUDIO i2s
 I2S_DATA_PIN=26
 I2S_CLK_BASE_PIN=27 # и 28
-I2S_FREQ=75000#37500 ##96000 ##111111 Hz
+I2S_FREQ=111111##75000##37500 ##111111 ##37500 ##96000 ##111111 Hz
 PIO_I2S=pio0 # Only  pio0 !
 SM_I2S=2
 DEFAULT_VOLUME_I2S=50
 AUDIO_BUSTER_DEFAULT=254
-
-
 )
 endif()
 #######################################################
@@ -339,15 +352,12 @@ if( ${M_BOARD} MATCHES "MURM2")
 set (M_VERSION m2)# версия платы
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 MURM2
-
-
 ##SDCARD
 SDCARD_SPI_BUS=spi0
 SDCARD_PIN_SPI0_CS=5
 SDCARD_PIN_SPI0_SCK=6
 SDCARD_PIN_SPI0_MOSI=7
 SDCARD_PIN_SPI0_MISO=4
-
 ##PSRAM
 PSRAM_DIV=2.0 #  1.4 // делитель частоты psram если 315 то 1.4 если меньше то 1.0
 PIO_PSRAM=pio1 
@@ -359,7 +369,6 @@ PSRAM_PIN_CS=8
 PSRAM_PIN_SCK=6
 PSRAM_PIN_MOSI=7
 PSRAM_PIN_MISO=4
-
 ##AUDIO i2s
 I2S_DATA_PIN=9
 I2S_CLK_BASE_PIN=10 # и 11
@@ -368,8 +377,6 @@ PIO_I2S=pio0
 SM_I2S=0
 DEFAULT_VOLUME_I2S=50
 AUDIO_BUSTER_DEFAULT=63
-
-
 )
 endif()
 #######################################################
@@ -384,8 +391,6 @@ set (M_VERSION pc)# версия платы
 target_compile_definitions(${PROJECT_NAME} PRIVATE
 PI_CARD
 PICO_PIO_USE_GPIO_BASE
-
-
 ##SDCARD
 #SDCARD_SPI_BUS spi0
 SDCARD_PIN_SPI0_CS=1
@@ -403,7 +408,6 @@ PSRAM_PIN_CS=0
 PSRAM_PIN_SCK=6
 PSRAM_PIN_MOSI=7
 PSRAM_PIN_MISO=4
-
 ##AUDIO i2s
 I2S_DATA_PIN=45
 I2S_CLK_BASE_PIN=46 # и 47
@@ -412,7 +416,6 @@ PIO_I2S=pio0 # использование GPIO 16...48
 SM_I2S=0
 DEFAULT_VOLUME_I2S=50
 AUDIO_BUSTER_DEFAULT=63
-
 )
 endif()
 ###############################################
@@ -421,8 +424,6 @@ set (P_VERSION p1)# версия чипа
 target_compile_definitions(${PROJECT_NAME} PRIVATE
         PICO_RP2040
         ## AY-3-8910 
-        AY_DELTA=2
-        AY_SAMPLE_RATE=9 #-9
         GSCPU_FRQ=15# 30 Мгц RP2350 18 МГц RP2040
 )
 endif()
@@ -432,8 +433,6 @@ set (P_VERSION p2)# версия чипа
 target_compile_definitions(${PROJECT_NAME} PRIVATE
         PICO_RP2350
         ## AY-3-8910 
-        AY_DELTA=2
-     ###   AY_SAMPLE_RATE=26###9#(-1000000 / (4* 48000) ) ##//-9// 
         GSCPU_FRQ=20# 30 Мгц RP2350 18 МГц RP2040
 )
 endif()
@@ -442,7 +441,6 @@ endif()
 #---------------------------------------------------------------
 # Конфигурация дефайнов для использования PSRAM
 #---------------------------------------------------------------
-
     # Обработка конфигураций
     if( ${M_BOARD} MATCHES "MURM1")
             if( ${PICO_PLATFORM} MATCHES "rp2040")
@@ -536,20 +534,22 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_multicore
         hardware_dma
         hardware_pio
-        hardware_i2c
         hardware_spi
         hardware_interp
         hardware_timer
         hardware_clocks
         hardware_pwm
         hardware_flash
- 
-        
-    pico_stdio
-    pico_stdio_usb
-
-       audio_i2s
+        pico_stdio
+        pico_stdio_usb
+        audio_i2s
 )
+
+# условное подключение hardware_i2c
+if(${M_BOARD} MATCHES "GS_HW1")
+    target_link_libraries(${PROJECT_NAME} PRIVATE hardware_i2c)
+    message(STATUS "hardware_i2c подключен для платы GS_HW1")
+endif()
 
 #pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
 target_link_options(${PROJECT_NAME} PRIVATE -Xlinker --print-memory-usage --data-sections)

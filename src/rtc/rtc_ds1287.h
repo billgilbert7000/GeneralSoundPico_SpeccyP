@@ -10,9 +10,9 @@ extern bool rtc_enable;
 void rtc_ds1287_init(void);
 uint8_t rtc_read_registr(uint8_t registr);
 void rtc_write_registr(uint8_t adress_reg, uint8_t value);
+void rtc_get_datetime_str(char *buffer, size_t buffer_size);
+void rtc_get_time_str(char *buffer, size_t buffer_size);
 
-// Адреса пользовательской памяти DS1307
-//#define DS1307_REG_END   0x12
 // Адреса регистров DS1307
 #define DS1307_SEC       0x00
 #define DS1307_MIN       0x01
@@ -21,7 +21,6 @@ void rtc_write_registr(uint8_t adress_reg, uint8_t value);
 #define DS1307_DATE      0x04
 #define DS1307_MONTH     0x05
 #define DS1307_YEAR      0x06
-
 
 // Адреса регистров DS1287
 #define DS1287_SEC          0x00
@@ -35,8 +34,6 @@ void rtc_write_registr(uint8_t adress_reg, uint8_t value);
 #define DS1287_MONTH        0x08
 #define DS1287_YEAR         0x09
 #define DS1287_A            0x0A
-
-
 
 #endif
 

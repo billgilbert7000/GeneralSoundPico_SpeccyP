@@ -211,8 +211,9 @@ void fast(AY_set_reg)(uint8_t val)
         }
 
     }
+#define  AY_DELTA 2   
 //--------------------------------------------------------------------------
-uint16_t*  fast(get_AY_Out)(uint8_t delta)
+uint16_t*  fast(get_AY_Out)(void)
 {   
     static bool bools[4];
 
@@ -242,9 +243,9 @@ uint16_t*  fast(get_AY_Out)(uint8_t delta)
     #define nR7 (~reg_ay0[7])
     //nR7 - инвертированый R7 для прямой логики - 1 Вкл, 0 - Выкл
 
-    if (nR7&0x1) {chA_count+=delta;if (chA_count>= ay0_A_freq && (ay0_A_freq>=delta) ) {chA_bit^=1;chA_count=0;}} else {chA_bitOut=1;chA_count=0;}; /*Тон A*/
-    if (nR7&0x2) {chB_count+=delta;if (chB_count>= ay0_B_freq && (ay0_B_freq>=delta) ) {chB_bit^=1;chB_count=0;}} else {chB_bitOut=1;chB_count=0;}; /*Тон B*/
-    if (nR7&0x4) {chC_count+=delta;if (chC_count>= ay0_C_freq && (ay0_C_freq>=delta) ) {chC_bit^=1;chC_count=0;}} else {chC_bitOut=1;chC_count=0;}; /*Тон C*/
+    if (nR7&0x1) {chA_count+=AY_DELTA ;if (chA_count>= ay0_A_freq && (ay0_A_freq>=AY_DELTA ) ) {chA_bit^=1;chA_count=0;}} else {chA_bitOut=1;chA_count=0;}; /*Тон A*/
+    if (nR7&0x2) {chB_count+=AY_DELTA ;if (chB_count>= ay0_B_freq && (ay0_B_freq>=AY_DELTA ) ) {chB_bit^=1;chB_count=0;}} else {chB_bitOut=1;chB_count=0;}; /*Тон B*/
+    if (nR7&0x4) {chC_count+=AY_DELTA ;if (chC_count>= ay0_C_freq && (ay0_C_freq>=AY_DELTA ) ) {chC_bit^=1;chC_count=0;}} else {chC_bitOut=1;chC_count=0;}; /*Тон C*/
 
 
     //проверка запрещения тона в каналах
@@ -256,7 +257,7 @@ uint16_t*  fast(get_AY_Out)(uint8_t delta)
     if (nR7&0x38)//есть шум хоть в одном канале
         {
  
-            noise_ay0_count+=delta;
+            noise_ay0_count+=AY_DELTA ;
           if (noise_ay0_count>=(reg_ay0[6]<<1)) {noise_bit=get_random(); noise_ay0_count=0;}//отдельный счётчик для шумового
                                 // R6 - частота шума
             
@@ -274,7 +275,7 @@ uint16_t*  fast(get_AY_Out)(uint8_t delta)
        // амплитуды огибающей
         if ((reg_ay0[8] & 0x10) | (reg_ay0[9] & 0x10) | (reg_ay0[10] & 0x10)) // отключение огибающей
         {   
-            main_ay_count_env += delta;
+            main_ay_count_env += AY_DELTA ;
             if (is_envelope_begin)
             {
                 envelope_ay_count = 0;
@@ -314,7 +315,9 @@ static uint16_t outs[3];
         outA = chA_bitOut ? ((reg_ay0[ 8] & 0xf0) ? ampl_ENV : ampls_AY_table [reg_ay0[8]]) : 0;
         outB = chB_bitOut ? ((reg_ay0[ 9] & 0xf0) ? ampl_ENV : ampls_AY_table [reg_ay0[9]]) >>1: 0;
         outC = chC_bitOut ? ((reg_ay0[10] & 0xf0) ? ampl_ENV : ampls_AY_table [reg_ay0[10]]) : 0;
-      
+        
+        outB = outB >> 1;
+        
         return outs;
 };
 //===================================================================
@@ -351,7 +354,7 @@ uint8_t fast(AY_get_reg1)()
     }
     //------------------------
 
-    uint16_t *fast(get_AY_Out1)(uint8_t delta)
+    uint16_t *fast(get_AY_Out1)(void)
     {
 
     static bool bools1[4];
@@ -382,9 +385,9 @@ uint8_t fast(AY_get_reg1)()
 
     //n1R7 - инвертированый R7 для прямой логики - 1 Вкл, 0 - Выкл
 
-    if (n1R7&0x1) {chA1_count+=delta;if (chA1_count>=ay1_A_freq && (ay1_A_freq>=delta) ) {chA_bit_1^=1;chA1_count=0;}} else {chA_bit_1Out=1;chA1_count=0;}; /*Тон A*/
-    if (n1R7&0x2) {chB1_count+=delta;if (chB1_count>=ay1_B_freq && (ay1_B_freq>=delta) ) {chB_bit_1^=1;chB1_count=0;}} else {chB_bit_1Out=1;chB1_count=0;}; /*Тон B*/
-    if (n1R7&0x4) {chC1_count+=delta;if (chC1_count>=ay1_C_freq && (ay1_C_freq>=delta) ) {chC_bit_1^=1;chC1_count=0;}} else {chC_bit_1Out=1;chC1_count=0;}; /*Тон C*/
+    if (n1R7&0x1) {chA1_count+=AY_DELTA ;if (chA1_count>=ay1_A_freq && (ay1_A_freq>=AY_DELTA ) ) {chA_bit_1^=1;chA1_count=0;}} else {chA_bit_1Out=1;chA1_count=0;}; /*Тон A*/
+    if (n1R7&0x2) {chB1_count+=AY_DELTA ;if (chB1_count>=ay1_B_freq && (ay1_B_freq>=AY_DELTA ) ) {chB_bit_1^=1;chB1_count=0;}} else {chB_bit_1Out=1;chB1_count=0;}; /*Тон B*/
+    if (n1R7&0x4) {chC1_count+=AY_DELTA ;if (chC1_count>=ay1_C_freq && (ay1_C_freq>=AY_DELTA ) ) {chC_bit_1^=1;chC1_count=0;}} else {chC_bit_1Out=1;chC1_count=0;}; /*Тон C*/
 
     //проверка запрещения тона в каналах
     if (reg_ay1[7]&0x1) chA_bit_1Out=1; 
@@ -394,7 +397,7 @@ uint8_t fast(AY_get_reg1)()
     //добавление шума, если разрешён шумовой канал
     if (n1R7&0x38)//есть шум хоть в одном канале
         {
-            noise_ay1_count+=delta;
+            noise_ay1_count+=AY_DELTA ;
             if (noise_ay1_count>=(reg_ay1[6]<<1)) {noise_bit_1=get_random();noise_ay1_count=0;}//отдельный счётчик для шумового
                                 // R6 - частота шума
             
@@ -411,7 +414,7 @@ uint8_t fast(AY_get_reg1)()
         // вычисление амплитуды огибающей
         if ((reg_ay1[8] & 0x10) | (reg_ay1[9] & 0x10) | (reg_ay1[10] & 0x10)) // отключение огибающей
         {   
-            main_ay1_count_env += delta;
+            main_ay1_count_env += AY_DELTA ;
             if (is_envelope_begin1)
             {
                 envelope_ay1_count = 0;
@@ -449,9 +452,11 @@ static uint16_t outs1[3];
           
 
         outA1 = chA_bit_1Out ? ((reg_ay1[8] & 0xf0) ? ampl_ENV_1 : ampls_AY_table[reg_ay1[8]]) : 0;
-        outB1 = chB_bit_1Out ? ((reg_ay1[9] & 0xf0) ? ampl_ENV_1 : ampls_AY_table[reg_ay1[9]])>>1 : 0;
-        outC1 = chC_bit_1Out ? ((reg_ay1[10] & 0xf0) ? ampl_ENV_1 : ampls_AY_table[reg_ay1[10]]) : 0;
-
+        outB1 = chB_bit_1Out ? ((reg_ay1[9] & 0xf0) ? ampl_ENV_1 : ampls_AY_table[reg_ay1[9]]) : 0;
+        outC1 = chC_bit_1Out ? ((reg_ay1[10] & 0xf0)? ampl_ENV_1 : ampls_AY_table[reg_ay1[10]]): 0;
+        
+        outB1 = outB1 >> 1;
+        
         return outs1;
     
 
@@ -501,34 +506,22 @@ static uint16_t outs1[3];
 //###########################################
 // Смешивание каналов звука и вывод по DMA
 //###########################################
-//#define exponential_volume
-#define linear_volume
+
 //###########################################
 // Конфигурируемый параметр громкости (0-100%)
 
 
-#define CH_TS_MAX_VALUE     255 // (45*3)      // Максимальное значение канала TS
-#define CH_TS_SCALE_TO     0xffff // 32000       // До какого значения масштабировать канал TS
-#define OUTPUT_MAX_VALUE   0xffff //64000/// (CH_GS_MAX_VALUE *3)  // Ограничение суммы каналов (CH_GS_MAX_VALUE * 3)
-#define OUTPUT_MIDPOINT   0x8000// (OUTPUT_MAX_VALUE/2) // (32000) // середина диапазона
+#define CH_TS_MAX_VALUE     255 // (45*3)// Максимальное значение канала TS
+#define CH_TS_SCALE_TO     0xffff // До какого значения масштабировать канал TS
+#define OUTPUT_MAX_VALUE   0xffff // (CH_GS_MAX_VALUE *3)  // Ограничение суммы каналов (CH_GS_MAX_VALUE * 3)
+#define OUTPUT_MIDPOINT   0x8000// (OUTPUT_MAX_VALUE/2) // (32768) // середина диапазона
 
-//###########################################
-#ifdef linear_volume
+
 //##################################################################
-
 // Таблица умножения для громкости (0-100% -> 0-256)
 static uint16_t volume_mult_table[101];
-
-// Таблицы для быстрого преобразования
-static uint16_t ay_scale_table[CH_TS_MAX_VALUE + 4];
-
 //##################################################################
 void init_audio_tables_optimized(void) {
-    // Таблица для канала TS
-    for (int i = 0; i <= CH_TS_MAX_VALUE; i++) {
-        ay_scale_table[i] = (i * CH_TS_SCALE_TO) / CH_TS_MAX_VALUE;
-    }
-    
     // Таблица для громкости i2s : volume * 256 / 100
     for (int i = 0; i <= 100; i++) {
         volume_mult_table[i] = (i * 256 *  (audio_buster+1)) / 100;
@@ -567,123 +560,40 @@ uint8_t get_audio_volume(void) {
     return current_volume;
 }
 //##################################################################
-void fast(audio_out_i2s_ts_new)(void)
-{
-    static uint32_t gs_prev_L = 0, gs_prev_R = 0;
-    static uint32_t gs_cur_L = 0, gs_cur_R = 0;
-    static bool gs_updated = false;  // был ли обновлён GS на этом вызове
-    
-    /* Обновляем GS-сэмплы, только когда они реально изменились (37.5 кГц) */
-    if (gs_updated == false) {
-        gs_prev_L = gs_cur_L;
-        gs_prev_R = gs_cur_R;
-        gs_cur_L = uintGS_L;   // свежее значение (приходит 37500 Гц)
-        gs_cur_R = uintGS_R;
-        gs_updated = true;
-    }
-    
-    /* Интерполяция: чередуем оригинал и среднее */
-    static bool even = true;
-    uint32_t gs_out_L, gs_out_R;
-    
-    if (even) {
-        /* Первый выходной сэмпл (из 2) — оригинал */
-        gs_out_L = gs_cur_L;
-        gs_out_R = gs_cur_R;
-    } else {
-        /* Второй выходной сэмпл — среднее между предыдущим и текущим */
-        gs_out_L = (gs_prev_L + gs_cur_L) >> 1;
-        gs_out_R = (gs_prev_R + gs_cur_R) >> 1;
-        gs_updated = false;  /* Оба сэмпла для этого входного отправлены */
-    }
-    even = !even;
-    
-    /* Дальше ваш обычный код */
-    AY_data = get_AY_Out(AY_DELTA);			
-    AY_data1 = get_AY_Out1(AY_DELTA);
-    
-    uint16_t beep_out = gpio_get(BEEP_PIN) ? 0 : beep_volume;
-    
-    uint32_t sumL = AY_data[0] + AY_data[1] + AY_data1[0] + AY_data1[1] + beep_out;
-    uint32_t sumR = AY_data[2] + AY_data[1] + AY_data1[2] + AY_data1[1] + beep_out;
-    
-    sumL = (sumL > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumL;
-    sumR = (sumR > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumR;
-    
-    uint32_t totalL = ay_scale_table[sumL] + gs_out_L;
-    uint32_t totalR = ay_scale_table[sumR] + gs_out_R;
-    
-    if (totalL > OUTPUT_MAX_VALUE) totalL = OUTPUT_MAX_VALUE;
-    if (totalR > OUTPUT_MAX_VALUE) totalR = OUTPUT_MAX_VALUE;
-    
-    #ifndef MIDI
-    int32_t outL = (int32_t)totalL - OUTPUT_MIDPOINT;
-    int32_t outR = (int32_t)totalR - OUTPUT_MIDPOINT;
-    #endif
-
-    #ifdef MIDI
-    int32_t outL = ((int32_t)totalL + midi_sound) - OUTPUT_MIDPOINT;
-    int32_t outR = ((int32_t)totalR + midi_sound) - OUTPUT_MIDPOINT;
-    #endif 
-    
-    outL = (outL * volume_mult_table[current_volume]) >> 8;
-    outR = (outR * volume_mult_table[current_volume]) >> 8;
-    
-    outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
-    outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
-
-    if (!mute)
-        i2s_out((int16_t)outR, (int16_t)outL);
-}
-
-
 
 
 //##################################################################
 void fast (audio_out_i2s_ts)(void)
 {	
 
-    AY_data = get_AY_Out(AY_DELTA);			
-    AY_data1 = get_AY_Out1(AY_DELTA);
+    AY_data =  get_AY_Out();			
+    AY_data1 = get_AY_Out1();
     
     uint16_t beep_out = gpio_get(BEEP_PIN) ? 0 : beep_volume;
+
+
+
+
+
+
 
     uint32_t sumL = AY_data[0] + AY_data[1] + AY_data1[0] + AY_data1[1] + beep_out;
     uint32_t sumR = AY_data[2] + AY_data[1] + AY_data1[2] + AY_data1[1] + beep_out;
     
-    sumL = (sumL > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumL;
-    sumR = (sumR > CH_TS_MAX_VALUE) ? CH_TS_MAX_VALUE : sumR;
+     int32_t totalL = ((int32_t)(sumL<<8));//-OUTPUT_MIDPOINT;  // 255*256 
+     int32_t totalR = ((int32_t)(sumR<<8));//-OUTPUT_MIDPOINT;
 
-    uint32_t totalL = ay_scale_table[sumL] + uintGS_L ;
-    uint32_t totalR = ay_scale_table[sumR] + uintGS_R ;
-    
-    if (totalL > OUTPUT_MAX_VALUE) totalL = OUTPUT_MAX_VALUE;
-    if (totalR > OUTPUT_MAX_VALUE) totalR = OUTPUT_MAX_VALUE;
-    
+  //  totalL = (totalL > OUTPUT_MAX_VALUE) ?  OUTPUT_MAX_VALUE: totalL;
+ //   totalR = (totalR > OUTPUT_MAX_VALUE) ?  OUTPUT_MAX_VALUE: totalR;
+
     #ifndef MIDI
-
-    // Преобразуем в int16_t диапазон
-    int32_t outL = (int32_t)totalL - OUTPUT_MIDPOINT ;
-    int32_t outR = (int32_t)totalR - OUTPUT_MIDPOINT ;
-
+       int32_t outL = (totalL  + intGS_L) - OUTPUT_MIDPOINT ;
+       int32_t outR = (totalR  + intGS_R) - OUTPUT_MIDPOINT ; 
     #endif
 
     #ifdef MIDI
-    /*    int32_t outL = ((int32_t)totalL  - OUTPUT_MIDPOINT ) + midi_sound   ;
-      int32_t outR = ((int32_t)totalR   - OUTPUT_MIDPOINT ) + midi_sound   ; */
-
-
-/*       outL += (midi_sound  );
-      outR += (midi_sound );  */
-
-       int32_t outL = ((int32_t)totalL + midi_sound) - OUTPUT_MIDPOINT  ;
-      int32_t outR = ((int32_t)totalR + midi_sound) - OUTPUT_MIDPOINT ; 
-
-
-
-   // outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
-   // outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
-
+       int32_t outL = (totalL + midi_L + intGS_L) - OUTPUT_MIDPOINT ;
+       int32_t outR = (totalR + midi_R + intGS_R) - OUTPUT_MIDPOINT ; 
     #endif 
 
     
@@ -695,12 +605,10 @@ void fast (audio_out_i2s_ts)(void)
     outL = (outL > 32767) ? 32767 : (outL < -32768) ? -32768 : outL;
     outR = (outR > 32767) ? 32767 : (outR < -32768) ? -32768 : outR;
 
-   if (!mute)
-    i2s_out((int16_t)outR, (int16_t)outL);
-
+   if (!mute) i2s_out((int16_t)outR, (int16_t)outL);
 
 }
-#endif
+
 //###############################################################
 void select_audio(void) /*I2S  TS Sound */
 {

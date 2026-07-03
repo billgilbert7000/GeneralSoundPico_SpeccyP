@@ -1,34 +1,20 @@
-
-
-
 #include "string.h"
 #include "stdbool.h"
-
 #include "gs_machine.h"
 #include "sound_ay/aySoft.h"
-
 #include "hw_util.h"
-
-//#define Z80_MAXIMUM_CYCLES 420
-
 #include <Z80.h>
-
-
-// rom
-//#include "rom/gs105b.h"// ROM GS
-//#include "rom/gs104.h"// ROM GS
-
-
 #include "hardware/structs/systick.h"
-
-
-//#include "psram_spi.h"
 #include "config.h"
-
 #include "audio_i2s.h"
 
 #ifdef MIDI
-#include "midi/general-midi.h"
+//#include "midi/general-midi.h"
+#include "midi/general-midi_wt.h"  // вместо старого general-midi.h
+
+// Для банка инструментов - загружаем из flash
+// (нужно включить .bin файл в бинарник)
+extern const uint8_t gm_bank_data[];  // Определяется в link script
 #endif
 
 //==============================================================================
@@ -95,13 +81,12 @@ void fast (GS_get_sound_LR_sample)()
 {
  /*    outGS_L=mix_sample((int16_t)(volume_2*(channel2-128)),(int16_t)(volume_4*(channel4-128))); // left   2 4
        outGS_R=mix_sample((int16_t)(volume_3*(channel3-128)),(int16_t)(volume_1*(channel1-128))); // right  1 3 */
-// Версия СТЕРЕО Евгения Мучкина
-   //  outGS_L=mix_sample((int16_t)(volume_1*(channel1-128)),(int16_t)(volume_4*(channel4-128))); // left  1 4
-  //   outGS_R=mix_sample((int16_t)(volume_2*(channel2-128)),(int16_t)(volume_3*(channel3-128))); // right 2 3  
-     // безнаковое число uint16_t — от 0 до 65 535
+      // Версия СТЕРЕО Евгения Мучкина
+  //   intGS_L  = (int32_t)((volume_1*(channel1-128)) + (int32_t)(volume_4*(channel4-128)));// left   1 4
+  //   intGS_R  = (int32_t)((volume_2*(channel2-128)) + (int32_t)(volume_3*(channel3-128)));// right  2 3 
 
-     uintGS_L  = ((volume_1*channel1) + (volume_4*channel4));//*(audio_buster+1);  // 255 * 63 + 255 * 63 = 16065
-     uintGS_R  = ((volume_2*channel2) + (volume_3*channel3));//*(audio_buster+1);  // 255 * 63 + 255 * 63 = 16065
+   intGS_L = ((int32_t)volume_1* ((int32_t)channel1 - 128)) + ((int32_t)volume_4 * ((int32_t)channel4 - 128));
+   intGS_R = ((int32_t)volume_2* ((int32_t)channel2 - 128)) + ((int32_t)volume_3 * ((int32_t)channel3 - 128));
 
 }; 
 //##################################################################################
@@ -530,13 +515,13 @@ __attribute__((always_inline))  inline static void fast(machine_cpu_out)(Machine
             volume_1=value;//<<1;
             break; 
         case 0x07:  //volume_2
-            volume_2=value;//<<2;
+            volume_2=value;//<<1;
             break; 
         case 0x08:  //volume_2
-            volume_3=value;//<<2;
+            volume_3=value;//<<1;
             break; 
         case 0x09:  //volume_4
-            volume_4=value;//<<2;
+            volume_4=value;//<<1;
             break; 
          
            
@@ -668,6 +653,15 @@ void zx_machine_init()
 
 	  gs_mem_init();
 
+
+    #ifdef MIDI
+    // Инициализация MIDI с банком инструментов
+    // Банк должен быть включен в бинарник как incbin
+    extern const uint8_t gm_bank_data[];
+    midi_wt_init(gm_bank_data);
+    #endif
+
+
     machine_initialize(z1);  // Инициализируем машину
     machine_power(z1, Z_TRUE);  // Включаем питание машины
 
@@ -694,7 +688,7 @@ __attribute__((always_inline)) inline void fast(zx_machine_main_loop_start)(void
        uint64_t tick_time = time_us_64();
     if (tick_time>=int_tick)//Проверяет, наступило ли время для выполнения синхронизированной части эмуляции.
     {    
-            
+        //    GS_get_sound_LR_sample(); 
       int_tick=tick_time+27;// Следующее прерывание через 27 мкс
        
         z80_int(&z1->cpu, true);// Генерация прерывания Z80
@@ -704,7 +698,7 @@ __attribute__((always_inline)) inline void fast(zx_machine_main_loop_start)(void
         z80_int(&z1->cpu, false);// Генерация прерывания Z80
 
         
- //GS_get_sound_LR_sample(); 
+     
  //audio_out_i2s_ts();
 
     }
