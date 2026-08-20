@@ -35,6 +35,7 @@ uint8_t data_gs=0xff;
 uint8_t status=0xff;     // Порт 4: D0 - флаг команд, D7 - флаг данных
 uint8_t volume[4]= {0x00, 0x00, 0x00, 0x00}; // Максимальная громкость по умолчанию  // Порты 6-9: D0-D5 - громкость, D6-D7 - не используются
 
+uint32_t size_psram;
 
 uint16_t outL = 0;
 uint16_t outR = 0;

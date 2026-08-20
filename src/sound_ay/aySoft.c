@@ -572,8 +572,9 @@ void fast (audio_out_i2s_ts)(void)
     uint16_t beep_out = gpio_get(BEEP_PIN) ? 0 : beep_volume;
 
 
-
-
+        bool input_state = gpio_get(BEEP_PIN);
+      //  gpio_put(LED_PIN, input_state);
+        gpio_put(28, input_state);
 
 
 

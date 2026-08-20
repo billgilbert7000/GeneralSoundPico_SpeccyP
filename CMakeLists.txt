@@ -48,10 +48,11 @@ if(GSP_CONFIG STREQUAL "GSP_FULL")
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-      MIDI
+      ##  MIDI
         RTC
         RTC_NOVA
-        #RTC_SMUC
+        RTC_GLUK
+        RTC_SMUC
     )
 
 elseif(GSP_CONFIG STREQUAL "GSP_NO_PSRAM")
@@ -86,8 +87,9 @@ else()
         RAM_PAGES=64 #Число страниц ОЗУ которые реально могут быть доступны GS
         TURBOSOUND
         Z_CONTROLER
-        MIDI
-      #  RTC_NOVA
+      ##  MIDI
+        RTC_NOVA
+        RTC_GLUK
         #RTC_SMUC
     )
 
@@ -108,7 +110,7 @@ endif()
 include(pico_sdk_import.cmake)
 ## инициализация проекта
 project(GSP C CXX ASM)
-set (PORT_VERSION "1.7.0") 
+set (PORT_VERSION "1.7.5") 
 
 ###############
 
